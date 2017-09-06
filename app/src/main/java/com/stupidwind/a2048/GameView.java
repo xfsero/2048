@@ -6,9 +6,6 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.widget.GridLayout;
 
-import java.util.ArrayList;
-import java.util.Random;
-
 /**
  * Created by 蠢风 on 2017/9/6.
  */
@@ -18,12 +15,10 @@ public class GameView extends GridLayout {
     private static final int ROW_NUM = 4;   // 行数
     private static final int COL_NUM = 4;   // 列数
 
-    private int[][] values = new int[ROW_NUM][COL_NUM];
     private Card[][] cards = new Card[ROW_NUM][COL_NUM];
     private int gridWidth;  // 棋盘格子的宽度，根据屏幕大小来自动调整
     private GestureDetector mGestureDetector;
     private int mScore; // 分数
-    private Random random = new Random();
 
     private ShowScoreListener mShowScoreListener;
     public void setShowScoreListener(ShowScoreListener listener) {
@@ -64,9 +59,9 @@ public class GameView extends GridLayout {
      */
     private void newGame() {
         this.removeAllViews();
+        mScore = 0;
         for(int i = 0; i < ROW_NUM; i++) {
             for(int j = 0; j < COL_NUM; j++) {
-                values[i][j] = 0;
                 cards[i][j] = new Card(getContext(), gridWidth);
                 this.addView(cards[i][j]);
             }
@@ -138,17 +133,6 @@ public class GameView extends GridLayout {
         return isOver;
     }
 
-    /*
-    private boolean canMove(DIRECTION dir) {
-        switch (dir) {
-            case LEFT:
-            case RIGHT:
-                break;
-        }
-        return false;
-    }
-    */
-
     /**
      * 滑动操作
      * 以向左滑动为例，寻找下一个不为0的格子next
@@ -183,6 +167,7 @@ public class GameView extends GridLayout {
                                 // 当前格子与下一个格子数字相等时，则合并
                                 cards[row][col].setNumber(cards[row][col].getNumber() * 2);
                                 cards[row][nextI].setNumber(0);
+                                mScore += cards[row][col].getNumber();
                                 hasMerge = true;
                             }
                         }
@@ -213,6 +198,7 @@ public class GameView extends GridLayout {
                             } else if(cards[row][col].equals(cards[row][nextI])) {
                                 cards[row][col].setNumber(cards[row][col].getNumber() * 2);
                                 cards[row][nextI].setNumber(0);
+                                mScore += cards[row][col].getNumber();
                                 hasMerge = true;
                             }
                         }
@@ -243,6 +229,7 @@ public class GameView extends GridLayout {
                             } else if(cards[row][col].equals(cards[nextI][col])) {
                                 cards[row][col].setNumber(cards[row][col].getNumber() * 2);
                                 cards[nextI][col].setNumber(0);
+                                mScore += cards[row][col].getNumber();
                                 hasMerge = true;
                             }
                         }
@@ -273,6 +260,7 @@ public class GameView extends GridLayout {
                             } else if(cards[row][col].equals(cards[nextI][col])) {
                                 cards[row][col].setNumber(cards[row][col].getNumber() * 2);
                                 cards[nextI][col].setNumber(0);
+                                mScore += cards[row][col].getNumber();
                                 hasMerge = true;
                             }
                         }
