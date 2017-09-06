@@ -1,16 +1,23 @@
 package com.stupidwind.a2048;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.widget.GridLayout;
+import android.widget.TextView;
 
 /**
  * Created by 蠢风 on 2017/9/6.
  */
 
 public class GameView extends GridLayout {
+
+    public static final String TAG = GridLayout.class.getSimpleName().toString();
 
     private static final int ROW_NUM = 4;   // 行数
     private static final int COL_NUM = 4;   // 列数
@@ -19,6 +26,7 @@ public class GameView extends GridLayout {
     private int gridWidth;  // 棋盘格子的宽度，根据屏幕大小来自动调整
     private GestureDetector mGestureDetector;
     private int mScore; // 分数
+    private int mHighScore; // 历史最高分数
 
     private ShowScoreListener mShowScoreListener;
     public void setShowScoreListener(ShowScoreListener listener) {
@@ -26,6 +34,7 @@ public class GameView extends GridLayout {
     }
     public interface ShowScoreListener {
         void showScore();
+        void updateHighScore();
     }
 
     public GameView(Context context) {
@@ -57,9 +66,16 @@ public class GameView extends GridLayout {
     /**
      * 开始新的游戏
      */
-    private void newGame() {
+    public void newGame() {
         this.removeAllViews();
+        // 更新历史最高得分
+        SharedPreferences sp = getContext().getSharedPreferences("stupidwind", Context.MODE_PRIVATE);
+        mHighScore = sp.getInt("high_score", 0);
+        if(mShowScoreListener != null) {
+            mShowScoreListener.updateHighScore();
+        }
         mScore = 0;
+        // 初始化所有格子 4x4
         for(int i = 0; i < ROW_NUM; i++) {
             for(int j = 0; j < COL_NUM; j++) {
                 cards[i][j] = new Card(getContext(), gridWidth);
@@ -72,6 +88,10 @@ public class GameView extends GridLayout {
 
     public int getScore() {
         return mScore;
+    }
+
+    public int getHighScore() {
+        return mHighScore;
     }
 
     /**
@@ -90,8 +110,38 @@ public class GameView extends GridLayout {
             int randNum = Math.random() > 0.2 ? 2 : 4;
             cards[row][col].setNumber(randNum);
         } else {
-            // 游戏结束
+            // 游戏结束，判断分数是否超过历史最高分数，并保存
+            Log.e(TAG, "GAME OVER");
+            if(mScore > mHighScore) {
+                mHighScore = mScore;
+                SharedPreferences sp = getContext().getSharedPreferences("stupidwind", Context.MODE_PRIVATE);
+                sp.edit().putInt("high_score", mHighScore);
+                if(mShowScoreListener != null) {
+                    mShowScoreListener.updateHighScore();
+                }
+            }
+            onGameOver();
         }
+    }
+
+    /**
+     * 游戏结束时执行的函数
+     */
+    private void onGameOver() {
+        new AlertDialog.Builder(getContext()).setTitle("GAME OVER")
+                .setMessage("YOU HAVE GOT " + mScore)
+                .setPositiveButton("RESTART", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        newGame();
+                    }
+                })
+                .setNegativeButton("EXIT", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        System.exit(0);
+                    }
+                }).show();
     }
 
     /**
@@ -136,7 +186,7 @@ public class GameView extends GridLayout {
     /**
      * 滑动操作
      * 以向左滑动为例，寻找下一个不为0的格子next
-     * 如果找不到下一个不为0的格子，则什么都不做
+     * 如果找不到下一个不为0的格子，则什么都不做， 否则：
      * 如果当前位置格子为0，则和next置换
      * 如果当前格子与next相等，则当前格子数值乘以2，next格子置为0
      * @param dir
