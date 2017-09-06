@@ -115,7 +115,7 @@ public class GameView extends GridLayout {
             if(mScore > mHighScore) {
                 mHighScore = mScore;
                 SharedPreferences sp = getContext().getSharedPreferences("stupidwind", Context.MODE_PRIVATE);
-                sp.edit().putInt("high_score", mHighScore);
+                sp.edit().putInt("high_score", mHighScore).commit();
                 if(mShowScoreListener != null) {
                     mShowScoreListener.updateHighScore();
                 }
@@ -128,20 +128,22 @@ public class GameView extends GridLayout {
      * 游戏结束时执行的函数
      */
     private void onGameOver() {
-        new AlertDialog.Builder(getContext()).setTitle("GAME OVER")
-                .setMessage("YOU HAVE GOT " + mScore)
+        AlertDialog.Builder dialog = new AlertDialog.Builder(getContext());
+        dialog.setTitle("GAME OVER")
+                .setCancelable(false)
                 .setPositiveButton("RESTART", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         newGame();
                     }
                 })
-                .setNegativeButton("EXIT", new DialogInterface.OnClickListener() {
+                .setNegativeButton("CANCLE", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        System.exit(0);
+
                     }
-                }).show();
+                });
+        dialog.show();
     }
 
     /**
@@ -164,21 +166,18 @@ public class GameView extends GridLayout {
      */
     private boolean checkOver() {
         boolean isOver = true;
-        if(isFull()) {
-            for(int row = 1; row < ROW_NUM - 1; row++) {
-                for(int col = 1; col < COL_NUM - 1; col++) {
-                    if(cards[row][col].equals(cards[row - 1][col]))
-                        isOver = false;
-                    if(cards[row][col].equals(cards[row + 1][col]))
-                        isOver = false;
-                    if(cards[row][col].equals(cards[row][col - 1]))
-                        isOver = false;
-                    if(cards[row][col].equals(cards[row][col + 1]))
-                        isOver = false;
+
+        for(int row = 1; row < ROW_NUM - 1; row++) {
+            for(int col = 1; col < COL_NUM - 1; col++) {
+                if(cards[row][col].getNumber() == 0
+                        || cards[row][col].equals(cards[row - 1][col])
+                        || cards[row][col].equals(cards[row + 1][col])
+                        || cards[row][col].equals(cards[row][col - 1])
+                        || cards[row][col].equals(cards[row][col + 1])) {
+                    isOver = false;
+                    break;
                 }
             }
-        } else {
-            isOver = false;
         }
         return isOver;
     }
@@ -349,7 +348,7 @@ public class GameView extends GridLayout {
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
 
-            if(isFull()) {
+            if(checkOver()) {
                 return false;
             }
 
