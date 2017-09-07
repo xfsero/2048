@@ -9,7 +9,6 @@ import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.widget.GridLayout;
-import android.widget.TextView;
 
 /**
  * Created by 蠢风 on 2017/9/6.
@@ -27,6 +26,7 @@ public class GameView extends GridLayout {
     private GestureDetector mGestureDetector;
     private int mScore; // 分数
     private int mHighScore; // 历史最高分数
+    private boolean isGameOver; // 判定游戏是否结束
 
     private ShowScoreListener mShowScoreListener;
     public void setShowScoreListener(ShowScoreListener listener) {
@@ -67,7 +67,9 @@ public class GameView extends GridLayout {
      * 开始新的游戏
      */
     public void newGame() {
+        Log.d(TAG, "开始游戏");
         this.removeAllViews();
+        isGameOver = false;
         // 更新历史最高得分
         SharedPreferences sp = getContext().getSharedPreferences("stupidwind", Context.MODE_PRIVATE);
         mHighScore = sp.getInt("high_score", 0);
@@ -98,7 +100,7 @@ public class GameView extends GridLayout {
      * 在棋盘上生成随机数
      */
     private void genRandomNum() {
-        if(!checkOver()) {
+        if(!isFull()) {
             int row;
             int col;
             do {
@@ -109,18 +111,7 @@ public class GameView extends GridLayout {
 
             int randNum = Math.random() > 0.2 ? 2 : 4;
             cards[row][col].setNumber(randNum);
-        } else {
-            // 游戏结束，判断分数是否超过历史最高分数，并保存
-            Log.e(TAG, "GAME OVER");
-            if(mScore > mHighScore) {
-                mHighScore = mScore;
-                SharedPreferences sp = getContext().getSharedPreferences("stupidwind", Context.MODE_PRIVATE);
-                sp.edit().putInt("high_score", mHighScore).commit();
-                if(mShowScoreListener != null) {
-                    mShowScoreListener.updateHighScore();
-                }
-            }
-            onGameOver();
+            Log.d(TAG, "生成一个新方块");
         }
     }
 
@@ -128,6 +119,21 @@ public class GameView extends GridLayout {
      * 游戏结束时执行的函数
      */
     private void onGameOver() {
+
+        // 游戏结束，判断分数是否超过历史最高分数，并保存
+        Log.e(TAG, "GAME OVER");
+        isGameOver = true;
+        if(mScore > mHighScore) {
+            mHighScore = mScore;
+            SharedPreferences sp = getContext().getSharedPreferences("stupidwind", Context.MODE_PRIVATE);
+            sp.edit().putInt("high_score", mHighScore).commit();
+            if(mShowScoreListener != null) {
+                mShowScoreListener.updateHighScore();
+            }
+        }
+
+        Log.d(TAG, "onGameOver: ");
+        isGameOver = true;
         AlertDialog.Builder dialog = new AlertDialog.Builder(getContext());
         dialog.setTitle("GAME OVER")
                 .setCancelable(false)
@@ -167,18 +173,30 @@ public class GameView extends GridLayout {
     private boolean checkOver() {
         boolean isOver = true;
 
-        for(int row = 1; row < ROW_NUM - 1; row++) {
-            for(int col = 1; col < COL_NUM - 1; col++) {
-                if(cards[row][col].getNumber() == 0
-                        || cards[row][col].equals(cards[row - 1][col])
-                        || cards[row][col].equals(cards[row + 1][col])
-                        || cards[row][col].equals(cards[row][col - 1])
-                        || cards[row][col].equals(cards[row][col + 1])) {
+        if(!isFull()) {
+            return false;
+        }
+
+        for(int row = 0; row < ROW_NUM; row++) {
+            for(int col = 0; col < COL_NUM; col++) {
+
+                if(row < ROW_NUM - 1 && cards[row][col].equals(cards[row + 1][col])) {
+                    isOver = false;
+                    break;
+                } else if(row > 0 && cards[row][col].equals(cards[row - 1][col])) {
+                    isOver = false;
+                    break;
+                } else if(col < COL_NUM - 1 && cards[row][col].equals(cards[row][col + 1])) {
+                    isOver = false;
+                    break;
+                } else if(col > 0 && cards[row][col].equals(cards[row][col - 1])) {
                     isOver = false;
                     break;
                 }
+
             }
         }
+        Log.d(TAG, "checkOver: " + isOver);
         return isOver;
     }
 
@@ -191,10 +209,13 @@ public class GameView extends GridLayout {
      * @param dir
      */
     private void moveTo(DIRECTION dir) {
+
         boolean hasMove = false;
         boolean hasMerge = false;
+
         switch (dir) {
             case LEFT:
+                Log.d(TAG, "向左滑动");
                 for(int row = 0; row < ROW_NUM; row++) {
                     for(int col = 0; col < COL_NUM; col++) {
                         int nextI = -1;
@@ -208,10 +229,9 @@ public class GameView extends GridLayout {
                             // 如果下一个格子的索引值不为-1，则说明找到不为0的下一个格子
                             if(cards[row][col].getNumber() == 0) {
                                 // 当前格子为0时，则置换
-                                cards[row][col].setNumber(cards[row][nextI].getNumber());
-                                cards[row][nextI].setNumber(0);
-                                col --;
+                                cards[row][col].swap(cards[row][nextI]);
                                 hasMove = true;
+                                col --;
                             } else if(cards[row][col].equals(cards[row][nextI])) {
                                 // 当前格子与下一个格子数字相等时，则合并
                                 cards[row][col].setNumber(cards[row][col].getNumber() * 2);
@@ -225,9 +245,9 @@ public class GameView extends GridLayout {
                 if(hasMove || hasMerge) {
                     genRandomNum();
                 }
-
                 break;
             case RIGHT:
+                Log.d(TAG, "向右滑动");
                 for(int row = 0; row < ROW_NUM; row++) {
                     for(int col = COL_NUM - 1; col >= 0; col--) {
                         int nextI = -1;
@@ -240,10 +260,9 @@ public class GameView extends GridLayout {
 
                         if(nextI != -1) {
                             if(cards[row][col].getNumber() == 0) {
-                                cards[row][col].setNumber(cards[row][nextI].getNumber());
-                                cards[row][nextI].setNumber(0);
-                                col++;
+                                cards[row][col].swap(cards[row][nextI]);
                                 hasMove = true;
+                                col++;
                             } else if(cards[row][col].equals(cards[row][nextI])) {
                                 cards[row][col].setNumber(cards[row][col].getNumber() * 2);
                                 cards[row][nextI].setNumber(0);
@@ -256,40 +275,11 @@ public class GameView extends GridLayout {
                 if(hasMove || hasMerge) {
                     genRandomNum();
                 }
-
                 break;
 
             case UP:
-                for(int col = 0; col < COL_NUM; col++) {
-                    for(int row = ROW_NUM - 1; row >= 0; row--) {
-                        int nextI = -1;
-                        for(int row1 = row -1; row1 >= 0; row1--) {
-                            if(cards[row1][col].getNumber() > 0) {
-                                nextI = row1;
-                                break;
-                            }
-                        }
-                        if(nextI != -1) {
-                            if(cards[row][col].getNumber() == 0) {
-                                cards[row][col].setNumber(cards[nextI][col].getNumber());
-                                cards[nextI][col].setNumber(0);
-                                row--;
-                                hasMove = true;
-                            } else if(cards[row][col].equals(cards[nextI][col])) {
-                                cards[row][col].setNumber(cards[row][col].getNumber() * 2);
-                                cards[nextI][col].setNumber(0);
-                                mScore += cards[row][col].getNumber();
-                                hasMerge = true;
-                            }
-                        }
-                    }
-                }
-                if(hasMove || hasMerge) {
-                    genRandomNum();
-                }
+                Log.d(TAG, "向上滑动");
 
-                break;
-            case DOWN:
                 for(int col = 0; col < COL_NUM; col++) {
                     for(int row = 0; row < ROW_NUM; row++) {
                         int nextI = -1;
@@ -302,10 +292,9 @@ public class GameView extends GridLayout {
 
                         if(nextI != -1) {
                             if(cards[row][col].getNumber() == 0) {
-                                cards[row][col].setNumber(cards[nextI][col].getNumber());
-                                cards[nextI][col].setNumber(0);
-                                row++;
+                                cards[row][col].swap(cards[nextI][col]);
                                 hasMove = true;
+                                row++;
                             } else if(cards[row][col].equals(cards[nextI][col])) {
                                 cards[row][col].setNumber(cards[row][col].getNumber() * 2);
                                 cards[nextI][col].setNumber(0);
@@ -319,7 +308,42 @@ public class GameView extends GridLayout {
                 if(hasMove || hasMerge) {
                     genRandomNum();
                 }
+
                 break;
+            case DOWN:
+                Log.d(TAG, "向下滑动");
+
+                for(int col = 0; col < COL_NUM; col++) {
+                    for(int row = ROW_NUM - 1; row >= 0; row--) {
+                        int nextI = -1;
+                        for(int row1 = row -1; row1 >= 0; row1--) {
+                            if(cards[row1][col].getNumber() > 0) {
+                                nextI = row1;
+                                break;
+                            }
+                        }
+                        if(nextI != -1) {
+                            if(cards[row][col].getNumber() == 0) {
+                                cards[row][col].swap(cards[nextI][col]);
+                                hasMove = true;
+                                row--;
+                            } else if(cards[row][col].equals(cards[nextI][col])) {
+                                cards[row][col].setNumber(cards[row][col].getNumber() * 2);
+                                cards[nextI][col].setNumber(0);
+                                mScore += cards[row][col].getNumber();
+                                hasMerge = true;
+                            }
+                        }
+                    }
+                }
+                if(hasMove || hasMerge) {
+                    genRandomNum();
+                }
+
+        }
+
+        if(checkOver()) {
+            onGameOver();
         }
 
     }
@@ -348,7 +372,7 @@ public class GameView extends GridLayout {
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
 
-            if(checkOver()) {
+            if(isGameOver) {
                 return false;
             }
 
@@ -373,6 +397,7 @@ public class GameView extends GridLayout {
                 }
             }
 
+            Log.d(TAG, "手势操作完毕");
             return true;
         }
     }

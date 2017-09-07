@@ -63,6 +63,16 @@ public class Card extends FrameLayout{
     }
 
     /**
+     * 交换卡片的数字
+     * @param c
+     */
+    public void swap(Card c) {
+        int temp = this.mNumber;
+        this.setNumber(c.getNumber());
+        c.setNumber(temp);
+    }
+
+    /**
      * 设置方块的颜色，以及字体颜色
      * @param number
      */
