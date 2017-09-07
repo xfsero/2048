@@ -47,4 +47,17 @@
         android:paddingTop="30dp"
         android:layout_weight="1"/>
 
+
+    <Button
+        android:id="@+id/btn_new_game"
+        android:text="NEW GAME"
+        android:textSize="18dp"
+        android:background="@drawable/selector_btn_new_game"
+        android:textColor="#FFF5F7"
+        android:padding="10dp"
+        android:layout_marginBottom="30dp"
+        android:layout_gravity="center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
 </LinearLayout>

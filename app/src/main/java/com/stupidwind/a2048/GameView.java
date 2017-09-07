@@ -73,7 +73,9 @@ public class GameView extends GridLayout {
         // 更新历史最高得分
         SharedPreferences sp = getContext().getSharedPreferences("stupidwind", Context.MODE_PRIVATE);
         mHighScore = sp.getInt("high_score", 0);
+        mScore = 0;
         if(mShowScoreListener != null) {
+            mShowScoreListener.showScore();
             mShowScoreListener.updateHighScore();
         }
         mScore = 0;
